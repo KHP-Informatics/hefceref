@@ -1,0 +1,9 @@
+Package: hefce
+Type: Package
+Title: hefce: Optimise a HEFCE REF application
+Version: 0.1
+Date: 2013-04-15
+Author: Cass Johnston
+Maintainer: Cass Johnston <cassjohnston@gmail.com>
+Description: Tools to help optimise a HEFCE REF application
+License: GPL-2
