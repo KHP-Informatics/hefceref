@@ -204,7 +204,7 @@ assign.shared.hefce.authors<-function(authors, shared.pubs){
   # get a table of assignments and make them
   assignments<-lapply(shuffle.ids(shared.pubs),function(p.id){
     cat(p.id,"\n")
-    these<-pubs[pubs[,"PaperID"]==p.id,]
+    these<-shared.pubs[shared.pubs[,"PaperID"]==p.id,]
     a.ids<-these[,"AuthorID"]
     if(length(a.ids)==0){return(NA) }
     these.authors<-authors[a.ids]
