@@ -203,6 +203,7 @@ assign.shared.hefce.authors<-function(authors, shared.pubs){
 
   # get a table of assignments and make them
   assignments<-lapply(shuffle.ids(shared.pubs),function(p.id){
+    cat(p.id,"\n")
     these<-pubs[pubs[,"PaperID"]==p.id,]
     a.ids<-these[,"AuthorID"]
     if(length(a.ids)==0){return(NA) }
@@ -330,7 +331,12 @@ make.submission.hefce.authors<-function(authors){
   # throw out any with NAs as they can't be submitted (but keep a note)
   used<-!is.na(score(authors))
 #  authors<-authors[!is.na(score(authors))]
-  unused.authors<-authors[!used]
+  if(sum(!used)>0){
+    unused.authors<-authors[!used]
+  }
+  else{
+    unused.authors<-NULL
+  }
   authors<-authors[used]
 
   # sort the authors by score
@@ -368,6 +374,7 @@ improve.author.hefce.authors<-function(authors, id, pubs){
   
   a<-authors[id]
   cat("improving for",a$name, "\n")
+
   # identify unused papers
   used.pubs<-all.pubs(authors)
   used.pubs<-used.pubs[!is.na(used.pubs[,"PaperID"]),]
@@ -377,13 +384,27 @@ improve.author.hefce.authors<-function(authors, id, pubs){
   poss.pubs<-c(a$pubs[[1]],unused.pubs[unused.pubs[,"AuthorID"]==id,])
   ord<-order(poss.pubs[,"PredictedGrade"], decreasing=T)
   poss.pubs<-poss.pubs[ord,]
-  
+ 
   authors$pubs[[id]]<-poss.pubs[1:a$required.outputs,]
+
+  # If the author still doesn't have enough papers to make a submission, throw all their papers back
+  # to give other people a chance to pick them up
+  if( any(is.na(authors$pubs[[id]]$pubs[,"PredictedGrade"]))){
+    na<-authors$pubs[[id]]$pubs
+    na$AuthorID=as.character(NA)
+    na$AuthorName=as.character(NA)
+    na$PaperID=as.character(NA)
+    na$PaperName=as.character(NA)
+    na$PredictedGrade=ordered(NA, levels=c("One","Two","Three","Four"))
+    authors$pubs[[id]]$pubs<-na
+  }
+
+
   return(authors)
 }
 
 optimise<-function(authors, pubs, max.iter, max.no.improv) UseMethod("optimise", authors)
-optimise.hefce.authors<-function(authors, pubs, max.iter=100, max.no.improv=3){
+optimise.hefce.authors<-function(authors, pubs, max.iter=100, max.no.improv=1){
 
   submission<-make.submission(authors)
   max.money<-max(submission$percentages[,"money"])
@@ -417,20 +438,6 @@ optimise.hefce.authors<-function(authors, pubs, max.iter=100, max.no.improv=3){
   return(authors)
 
 }
-
-
-# optimise pubs
- # start by assigning the unshared papers, best rating wins 
-
- # then make a starting assignment of shared papers, 
-
- # then shuffle up to max.iter times or until the score doesn't get any better for n iters
- # optimising the peak cash amount 
-
-#}
-
-# given that we haven't got time to do the optimisation properly, just do it ma
-
 
 
 
