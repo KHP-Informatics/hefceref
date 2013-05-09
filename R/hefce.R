@@ -128,7 +128,7 @@ names.hefce.authors<-function(x){
   x$id
 }
 # as.list - returns list of single hefce.author objects.
-as.list.hefce.authors<-function(x){
+as.list.hefce.authors<-function(x,...){
   new.list<-lapply(1:length(x),function(i){x[i]})
   names(new.list)<-x$ids
   return(new.list)
@@ -373,7 +373,7 @@ improve.author <- function(authors,id, pubs) UseMethod("improve.author", authors
 improve.author.hefce.authors<-function(authors, id, pubs){
   
   a<-authors[id]
-  cat("improving for",a$name, "\n")
+  #cat("improving for",a$name, "\n")
 
   # identify unused papers
   used.pubs<-all.pubs(authors)
@@ -403,41 +403,68 @@ improve.author.hefce.authors<-function(authors, id, pubs){
   return(authors)
 }
 
-optimise<-function(authors, pubs, max.iter, max.no.improv) UseMethod("optimise", authors)
-optimise.hefce.authors<-function(authors, pubs, max.iter=100, max.no.improv=1){
+optimise<-function(authors, pubs, best.score) UseMethod("optimise", authors)
+optimise.hefce.authors<-function(authors, pubs, best.score=0){
+  
+     cat("optimise called with best.score", best.score, "\n")
 
-  submission<-make.submission(authors)
-  max.money<-max(submission$percentages[,"money"])
-  iter.count<-1
-  no.improv<-0
-
-  repeat{
-     #cat("\n\nIteration ",iter.count, "\n")
-     if(iter.count>max.iter){break}
-
-     # run a round of improvements
+     # for authors in a random order, get best papers
      ids<-sample(authors$id, length(authors$id), replace=FALSE)
      for(i in ids){
        authors<-improve.author(authors,i,pubs)
      }
-     # and stop when you aren't improving any more
+     # generate a submission and calculate score
      submission<-make.submission(authors)
-     new.max.money<-max(submission$percentages[,"money"])
-     if(new.max.money<=max.money){
-       no.improv<-no.improv+1
-       if(no.improv==max.no.improv){
-         no.improv <- 0
-         break
-       }
+     sub.max<-max(submission$percentages[,"money"])
+
+     # repeat improvements of full list until we max out score
+     if(sub.max>best.score){
+      cat("iter on full list\n")
+       res <- optimise(authors, pubs, sub.max)
      }
-     cat("\n\n",new.max.money,"\n\n")
-     max.money<-new.max.money
-     iter.count <- iter.count+1
-  }
 
-  return(authors)
-
+     return(list(authors=res$authors,submission=res$submission, sub.max=res$sub.max))
 }
+
+#optimise<-function(authors, pubs, max.iter, max.no.improv) UseMethod("optimise", authors)
+#optimise.hefce.authors<-function(authors, pubs, max.iter=100, max.no.improv=1){
+#
+#  submission<-make.submission(authors)
+#  max.money<-max(submission$percentages[,"money"])
+#  iter.count<-1
+#  no.improv<-0
+#
+#  repeat{
+#     #cat("\n\nIteration ",iter.count, "\n")
+#     if(iter.count>max.iter){break}
+#
+#     # run a round of improvements
+#     ids<-sample(authors$id, length(authors$id), replace=FALSE)
+#     for(i in ids){
+#       authors<-improve.author(authors,i,pubs)
+#     }
+#     # and stop when you aren't improving any more
+#     submission<-make.submission(authors)
+#  
+#     # we drop some people at this point. I wonder if we should add more rounds of
+#     # optimisation to reassign their papers?   
+#
+#     new.max.money<-max(submission$percentages[,"money"])
+#     if(new.max.money<=max.money){
+#       no.improv<-no.improv+1
+#       if(no.improv==max.no.improv){
+#         no.improv <- 0
+#         break
+#       }
+#     }
+#     cat("\n\n",new.max.money,"\n\n")
+#     max.money<-new.max.money
+#     iter.count <- iter.count+1
+#  }
+#
+#  return(authors)
+#
+#}
 
 
 
