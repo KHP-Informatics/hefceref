@@ -1,7 +1,7 @@
 Package: hefceref
 Type: Package
 Title: hefce: Optimise a HEFCE REF application
-Version: 0.1
+Version: 0.2
 Date: 2013-04-15
 Author: Cass Johnston
 Maintainer: Cass Johnston <cassjohnston@gmail.com>

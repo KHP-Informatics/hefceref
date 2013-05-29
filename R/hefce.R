@@ -72,7 +72,7 @@ shuffle.ids.hefce.pubs <- function(x){
 
 
 # authors.  
-hefce.authors<-function(name, id, required.outputs, pubs=NULL){ 
+hefce.authors<-function(name, id, required.outputs, fte=NA, pubs=NULL){ 
   if(is.null(name)){stop("No name found")}
   if(!is.character(name)){stop("Name not character")}
   len<-length(name)
@@ -83,6 +83,10 @@ hefce.authors<-function(name, id, required.outputs, pubs=NULL){
   if(any(duplicated(id))){stop("There are duplicate IDs")}
   if(is.null(required.outputs)){stop("required.pubs not supplied")}
   if(length(required.outputs)!=len){ stop("name and required.outputs differ in length") }
+  if(length(fte)==1 && is.na(fte)){
+    fte<-rep(1, len)  
+  }
+  if(length(fte)!=len){stop("name and fte differ in length")}
   
   if(is.null(pubs)){
     pubs<-lapply(required.outputs, function(x){
@@ -111,7 +115,7 @@ hefce.authors<-function(name, id, required.outputs, pubs=NULL){
   names(required.outputs)<-id
   names(pubs)<-id
   
-  auth<-list(name=name,id=id,required.outputs=required.outputs, pubs=pubs)
+  auth<-list(name=name,id=id,required.outputs=required.outputs, fte=fte, pubs=pubs)
   class(auth)<-c("hefce.authors")
   return(auth)
 
@@ -138,8 +142,9 @@ as.list.hefce.authors<-function(x,...){
   name<-x$name[i]
   id<-x$id[i]
   required.output<-x$required.output[i]
+  fte<-x$fte[i]
   pubs<-x$pubs[i]
-  return(hefce.authors(name,id,required.output,pubs))
+  return(hefce.authors(name,id,required.output,fte,pubs))
 }
 "[[.hefce.authors"<-function(x,i){
   x[i]
@@ -151,7 +156,8 @@ c.hefce.authors<-function(..., recursive=FALSE){
   id<-do.call(c,lapply(elements, function(x){x$id}))
   required.outputs<-do.call(c,lapply(elements, function(x){x$required.outputs}))
   pubs<-do.call(c,lapply(elements, function(x){x$pubs}))
-  hefce.authors(name,id,required.outputs,pubs)
+  fte<-do.call(c,lapply(elements, function(x){x$fte}))
+  hefce.authors(name,id,required.outputs,fte,pubs)
 }
 
 assign.unshared <- function(authors, unshared.pubs) UseMethod("assign.unshared", authors)
@@ -203,7 +209,6 @@ assign.shared.hefce.authors<-function(authors, shared.pubs){
 
   # get a table of assignments and make them
   assignments<-lapply(shuffle.ids(shared.pubs),function(p.id){
-    cat(p.id,"\n")
     these<-shared.pubs[shared.pubs[,"PaperID"]==p.id,]
     a.ids<-these[,"AuthorID"]
     if(length(a.ids)==0){return(NA) }
@@ -311,7 +316,7 @@ score.hefce.authors<-function(authors){
      if(is.null(grades)){return(NA)} # no papers at all
      if(any(is.na(grades))){return(NA)} # not enough papers to score
      grades<-summary(grades)
-     this.score<-sum(c(0,0,1,3) * grades)/a$required.outputs
+     this.score<-a$fte*(sum(c(0,0,1,3) * grades)/a$required.outputs)
     return(this.score)
   })
   authors$scores<-scores
@@ -333,8 +338,7 @@ make.submission.hefce.authors<-function(authors){
 #  authors<-authors[!is.na(score(authors))]
   if(sum(!used)>0){
     unused.authors<-authors[!used]
-  }
-  else{
+  }else{
     unused.authors<-NULL
   }
   authors<-authors[used]
@@ -351,6 +355,9 @@ make.submission.hefce.authors<-function(authors){
   counts<-do.call(rbind, counts)
   counts<-data.frame(counts) # otherwise counts[1:1,] has dim
   
+  # modify the counts by FTE
+  counts<-counts*these.authors$fte
+
   # calculate the percentages of 1,2,3 and 4* papers as you go down
   # the list (so the % for an author assumes submission of that author 
   # all better authors)
@@ -416,14 +423,15 @@ optimise.hefce.authors<-function(authors, pubs, best.score=0){
      # generate a submission and calculate score
      submission<-make.submission(authors)
      sub.max<-max(submission$percentages[,"money"])
+     cat(sub.max,"\n")
 
      # repeat improvements of full list until we max out score
      if(sub.max>best.score){
       cat("iter on full list\n")
-       res <- optimise(authors, pubs, sub.max)
+      return(optimise(authors, pubs, sub.max))
      }
 
-     return(list(authors=res$authors,submission=res$submission, sub.max=res$sub.max))
+     return(list(authors=authors,submission=submission, sub.max=sub.max))
 }
 
 #optimise<-function(authors, pubs, max.iter, max.no.improv) UseMethod("optimise", authors)
