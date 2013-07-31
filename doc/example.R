@@ -10,7 +10,8 @@ req <- read.csv("Required_outputs.csv",header=T)
 ######
 # PUBLICATIONS:
 
-# these are the col names that hefce expects for the ref data. All character
+# these are the col names that hefce expects for the ref data. 
+# PredictedGrade should be one of "One","Two","Three","Four"
 colnames(ref)<-c("AuthorID",
                  "AuthorName",
                  "PaperID",
